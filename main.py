@@ -1,22 +1,32 @@
 import asyncio
+import re
 
 import aiohttp
 from aiopg.sa import create_engine
-from db import log, create_table
+
+from db import log_table, create_table
+from sort import quick_sort
 
 
 async def get_resp():
+    data = []
     async with aiohttp.ClientSession() as session:
         async with session.get('http://www.dsdev.tech/logs/20210123') as resp:
             resp_json = await resp.json()
             for log in resp_json['logs']:
-                yield {
-                    'date': log['created_at'],
-                    'user_id': log['user_id'],
-                    'first_name': log['first_name'],
-                    'last_name': log['second_name'],
-                    'message': log['message']
-                }
+                data.append(
+                    {
+                        'date': log['created_at'],
+                        'new': re.sub('\D', '', log['created_at']),
+                        'user_id': log['user_id'],
+                        'first_name': log['first_name'],
+                        'last_name': log['second_name'],
+                        'message': log['message']
+                    }
+                )
+
+    quick_sort(data)
+    return data
 
 
 async def main():
@@ -27,22 +37,18 @@ async def main():
                              port=5432) as engine:
 
         await create_table(engine)
+
         async with engine.acquire() as conn:
-            values = get_resp()
-            while True:
-                try:
-                    l = await values.__anext__()
-                    await conn.execute(
-                        log.insert().values(
-                            date=l['date'],
-                            user_id=l['user_id'],
-                            first_name=l['first_name'],
-                            last_name=l['last_name'],
-                            message=l['message'])
-                    )
-                except StopAsyncIteration:
-                    print('ВСЕ')
-                    break
+            logs = await get_resp()
+            for log in logs:
+                await conn.execute(
+                    log_table.insert().values(
+                        date=log['date'],
+                        user_id=log['user_id'],
+                        first_name=log['first_name'],
+                        last_name=log['last_name'],
+                        message=log['message'])
+                )
 
 
 loop = asyncio.get_event_loop()

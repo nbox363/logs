@@ -1,9 +1,8 @@
 import sqlalchemy as sa
-from aiopg.sa import create_engine
 
 meta = sa.MetaData()
 
-log = sa.Table(
+log_table = sa.Table(
     'log', meta,
     sa.Column('id', sa.Integer, primary_key=True),
     sa.Column('date', sa.DateTime, nullable=False),
@@ -19,12 +18,11 @@ log = sa.Table(
 
 async def create_table(engine):
     async with engine.acquire() as conn:
-        await conn.execute('DROP TABLE IF EXISTS log')
+        await conn.execute('DROP TABLE IF EXISTS log_table')
         await conn.execute(
-            '''CREATE TABLE log (id serial PRIMARY KEY,
-                                 date Date,   
-                                 user_id INT,
-                                 first_name varchar(155),
-                                 last_name varchar(155),
-                                 message TEXT)''')
-
+            '''CREATE TABLE log_table (id SERIAL PRIMARY KEY,
+                                       date TIMESTAMP,   
+                                       user_id INT,
+                                       first_name VARCHAR(155),
+                                       last_name VARCHAR(155),
+                                       message TEXT)''')

@@ -1,9 +1,9 @@
-def quick_sort(A):
-    if len(A) <= 1:
+def quick_sort(seq: list):
+    if len(seq) <= 1:
         return
-    barrier = A[0]['new']
+    barrier = seq[0]['new']
     L, R, M = [], [], []
-    for x in A:
+    for x in seq:
         if x['new'] < barrier:
             L.append(x)
         elif x['new'] == barrier:
@@ -13,6 +13,6 @@ def quick_sort(A):
     quick_sort(L)
     quick_sort(R)
     k = 0
-    for x in L+M+R:
-        A[k] = x
+    for x in L + M + R:
+        seq[k] = x
         k += 1

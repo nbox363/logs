@@ -1,57 +1,72 @@
-import asyncio
 import re
+from abc import ABC, abstractmethod
 
-import aiohttp
-from aiopg.sa import create_engine
+import psycopg2
+import requests
+from requests.models import Response
 
-from db import log_table, create_table
+from db import create_table, drop_table, insert_table
 from sort import quick_sort
+
+
+class ABCResp(ABC):
+    @abstractmethod
+    def json(self) -> dict:
+        pass
+
+
+class ABCRequestsClient(ABC):
+    @abstractmethod
+    def get(self, str) -> ABCResp:
+        pass
+
+
+class RequestsClient(ABCRequestsClient):
+    def get(self, str) -> Response:
+        return requests.get(str)
 
 
 class LogHandler:
 
-    def __init__(self):
-        self.url = 'http://www.dsdev.tech/logs/' + '20210123'
-        self.logs = []
+    def __init__(self, req: ABCRequestsClient):
+        self.req = req
 
-    async def main(self):
-        resp_json = await self.get_resp_json()
-        self.get_logs(resp_json)
-        self.sorting(self.logs)
-        await self.write_db()
+    def main(self, data):
+        resp = self.req.get(self.url(data))
+        logs = resp.json()['logs']
+        logs_for_sort = self.add_num(logs)
+        logs_after_sort = self.sorting(logs_for_sort)
+        self.safe(logs_after_sort)
 
-    async def get_resp_json(self) -> dict:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(self.url) as resp:
-                resp_json = await resp.json()
-                return resp_json
+    def safe(self, logs):
+        conn = psycopg2.connect(database='postgres',
+                                user='postgres',
+                                password='1234',
+                                host='localhost')
 
-    def get_logs(self, resp_json) -> None:
-        for log in resp_json['logs']:
+        cur = conn.cursor()
+        cur.execute(drop_table())
+        cur.execute(create_table())
+        for log in logs:
+            cur.execute(insert_table(),
+                        (log['created_at'], log['user_id'], log['first_name'], log['second_name'], log['message']))
+        cur.close()
+        conn.commit()
+
+    def sorting(self, logs):
+        quick_sort(logs)
+        return logs
+
+    def add_num(self, logs: list):
+        for log in logs:
             log['new'] = re.sub('\D', '', log['created_at'])
-            self.logs.append(log)
+        return logs
 
-    async def write_db(self):
-        async with create_engine(database='postgres',
-                                 user='postgres',
-                                 password='1234',
-                                 host='localhost') as engine:
-            await create_table(engine)
-
-            async with engine.acquire() as conn:
-                for log in self.logs:
-                    log.pop('new')
-                    await self.insert_tbl(conn, log)
-
-    @staticmethod
-    async def insert_tbl(conn, log) -> None:
-        await conn.execute(log_table.insert().values(**log))
-
-    @staticmethod
-    def sorting(seq: list) -> None:
-        quick_sort(seq)
+    def url(self, data):
+        url = 'http://www.dsdev.tech/logs/' + data  # '20210123'
+        return url
 
 
-l = LogHandler()
-loop = asyncio.get_event_loop()
-loop.run_until_complete(l.main())
+r = RequestsClient()
+l = LogHandler(r)
+l.main('20210123')

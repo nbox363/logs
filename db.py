@@ -16,7 +16,22 @@ log_table = sa.Table(
 )
 
 
-async def create_table(engine):
-    async with engine.acquire() as conn:
-        await conn.execute('DROP TABLE IF EXISTS log_table')
-        await conn.execute(CreateTable(log_table))
+def insert_table():
+    command = '''INSERT INTO log (created_at, user_id, first_name, second_name, message)
+                  VALUES (%s, %s, %s, %s, %s);'''
+    return command
+
+
+def drop_table():
+    command = 'DROP TABLE IF EXISTS log'
+    return command
+
+
+def create_table():
+    command = '''CREATE TABLE log (id serial PRIMARY KEY,
+                                   created_at Date,   
+                                   user_id INT,
+                                   first_name varchar(155),
+                                   second_name varchar(155),
+                                   message TEXT)'''
+    return command

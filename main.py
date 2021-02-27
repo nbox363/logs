@@ -15,12 +15,12 @@ class LogHandler:
         self.logs = []
 
     async def main(self):
-        resp_json = await self.get_resp()
+        resp_json = await self.get_resp_json()
         self.get_logs(resp_json)
         self.sorting(self.logs)
         await self.write_db()
 
-    async def get_resp(self) -> dict:
+    async def get_resp_json(self) -> dict:
         async with aiohttp.ClientSession() as session:
             async with session.get(self.url) as resp:
                 resp_json = await resp.json()
@@ -28,14 +28,8 @@ class LogHandler:
 
     def get_logs(self, resp_json) -> None:
         for log in resp_json['logs']:
-            self.logs.append({
-                'date': log['created_at'],
-                'new': re.sub('\D', '', log['created_at']),
-                'user_id': log['user_id'],
-                'first_name': log['first_name'],
-                'last_name': log['second_name'],
-                'message': log['message']}
-            )
+            log['new'] = re.sub('\D', '', log['created_at'])
+            self.logs.append(log)
 
     async def write_db(self):
         async with create_engine(database='postgres',
@@ -46,17 +40,12 @@ class LogHandler:
 
             async with engine.acquire() as conn:
                 for log in self.logs:
-                    await self.insert_tbl(
-                        conn,
-                        date=log['date'],
-                        user_id=log['user_id'],
-                        first_name=log['first_name'],
-                        last_name=log['last_name'],
-                        message=log['message'])
+                    log.pop('new')
+                    await self.insert_tbl(conn, log)
 
     @staticmethod
-    async def insert_tbl(conn, **kwargs) -> None:
-        await conn.execute(log_table.insert().values(**kwargs))
+    async def insert_tbl(conn, log) -> None:
+        await conn.execute(log_table.insert().values(**log))
 
     @staticmethod
     def sorting(seq: list) -> None:

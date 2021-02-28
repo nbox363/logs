@@ -36,8 +36,6 @@ class LogHandler:
             password='1234',
             host='localhost')
 
-        print(type(conn))
-
         cur = conn.cursor()
         cur.execute(drop)
         cur.execute(create)

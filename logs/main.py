@@ -3,7 +3,7 @@ import re
 import sys
 
 from abc_classes import *
-from db import create_table, drop_table, insert_table
+from db import insert, drop, create
 from utilities import months, quick_sort, default_date
 
 logging.basicConfig(level=logging.DEBUG)
@@ -36,13 +36,15 @@ class LogHandler:
             password='1234',
             host='localhost')
 
+        print(type(conn))
+
         cur = conn.cursor()
-        cur.execute(drop_table())
-        cur.execute(create_table())
+        cur.execute(drop)
+        cur.execute(create)
 
         for log in logs:
             fields = [str(val) for key, val in log.items() if key != 'date_num']
-            cur.execute(insert_table(), fields)
+            cur.execute(insert, fields)
 
         cur.close()
         conn.commit()

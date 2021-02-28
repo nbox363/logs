@@ -5,10 +5,10 @@ from abc import ABC, abstractmethod
 
 import psycopg2
 import requests
-from requests.models import Response
-
 from db import create_table, drop_table, insert_table
-from utilities import months, quick_sort
+from psycopg2.extensions import connection
+from requests.models import Response
+from utilities import months, quick_sort, default_date
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -30,10 +30,42 @@ class RequestsClient(ABCRequestsClient):
         return requests.get(url)
 
 
+class ABCCur(ABC):
+    @abstractmethod
+    def execute(self, func, *args) -> None:
+        pass
+
+    @abstractmethod
+    def close(self) -> None:
+        pass
+
+
+class ABCConn(ABC):
+    @abstractmethod
+    def commit(self) -> None:
+        pass
+
+    @abstractmethod
+    def cursor(self) -> ABCCur:
+        pass
+
+
+class ABCPsycopgClient(ABC):
+    @abstractmethod
+    def connect(self, **kwargs) -> ABCConn:
+        pass
+
+
+class ConnClient(ABCPsycopgClient):
+    def connect(self, **kwargs) -> connection:
+        return psycopg2.connect(**kwargs)
+
+
 class LogHandler:
 
-    def __init__(self, req: ABCRequestsClient):
+    def __init__(self, req: ABCRequestsClient, psycopg2: ABCPsycopgClient):
         self.req = req
+        self.psycopg2 = psycopg2
 
     def main(self, data):
         logging.debug(f'Method "main" was called with date {" ".join(data)}')
@@ -49,12 +81,12 @@ class LogHandler:
             error = resp.json()['error']
             logging.debug(error)
 
-    @staticmethod
-    def safe(logs):
-        conn = psycopg2.connect(database='postgres',
-                                user='postgres',
-                                password='1234',
-                                host='localhost')
+    def safe(self, logs):
+        conn = self.psycopg2.connect(
+            database='postgres',
+            user='postgres',
+            password='1234',
+            host='localhost')
 
         cur = conn.cursor()
         cur.execute(drop_table())
@@ -86,8 +118,9 @@ class LogHandler:
 
 if __name__ == '__main__':
     req = RequestsClient()
-    l = LogHandler(req)
+    conn = ConnClient()
+    l = LogHandler(req, conn)
     if sys.argv[1:]:
         l.main(sys.argv[1:])
     else:
-        l.main(['23', 'февраля', '2021'])
+        l.main(default_date)

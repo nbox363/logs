@@ -13,6 +13,10 @@ months = {
     'декабря': '12'
 }
 
+
+default_date = ['23', 'февраля', '2021']
+
+
 def quick_sort(seq: list):
     if len(seq) <= 1:
         return

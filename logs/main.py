@@ -1,64 +1,12 @@
 import logging
 import re
 import sys
-from abc import ABC, abstractmethod
 
-import psycopg2
-import requests
+from abc_classes import *
 from db import create_table, drop_table, insert_table
-from psycopg2.extensions import connection
-from requests.models import Response
 from utilities import months, quick_sort, default_date
 
 logging.basicConfig(level=logging.DEBUG)
-
-
-class ABCResp(ABC):
-    @abstractmethod
-    def json(self) -> dict:
-        pass
-
-
-class ABCRequestsClient(ABC):
-    @abstractmethod
-    def get(self, url) -> ABCResp:
-        pass
-
-
-class RequestsClient(ABCRequestsClient):
-    def get(self, url) -> Response:
-        return requests.get(url)
-
-
-class ABCCur(ABC):
-    @abstractmethod
-    def execute(self, func, *args) -> None:
-        pass
-
-    @abstractmethod
-    def close(self) -> None:
-        pass
-
-
-class ABCConn(ABC):
-    @abstractmethod
-    def commit(self) -> None:
-        pass
-
-    @abstractmethod
-    def cursor(self) -> ABCCur:
-        pass
-
-
-class ABCPsycopgClient(ABC):
-    @abstractmethod
-    def connect(self, **kwargs) -> ABCConn:
-        pass
-
-
-class ConnClient(ABCPsycopgClient):
-    def connect(self, **kwargs) -> connection:
-        return psycopg2.connect(**kwargs)
 
 
 class LogHandler:
@@ -93,7 +41,7 @@ class LogHandler:
         cur.execute(create_table())
 
         for log in logs:
-            fields = [val for key, val in log.items() if key != 'date_num']
+            fields = [str(val) for key, val in log.items() if key != 'date_num']
             cur.execute(insert_table(), fields)
 
         cur.close()

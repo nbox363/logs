@@ -14,7 +14,7 @@ months = {
 }
 
 
-default_date = ['23', 'февраля', '2021']
+default_date = ['22', 'февраля', '2021']
 
 
 def quick_sort(seq: list):

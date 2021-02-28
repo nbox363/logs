@@ -11,9 +11,9 @@ def drop_table() -> str:
 
 def create_table() -> str:
     command = '''CREATE TABLE log (id serial PRIMARY KEY,
-                                   created_at Date,   
-                                   user_id INT,
-                                   first_name varchar(155),
-                                   second_name varchar(155),
-                                   message TEXT)'''
+                                   created_at TIMESTAMP,
+                                   first_name VARCHAR(155),
+                                   message TEXT,
+                                   second_name VARCHAR(155),
+                                   user_id INT)'''
     return command

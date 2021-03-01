@@ -2,8 +2,8 @@ import logging
 import re
 import sys
 
-from abc_classes import *
-from db import insert, get_connect, get_cursor
+from req import *
+from db import insert, ABCDbConn, PGConn
 from utilities import months, quick_sort, default_date
 
 logging.basicConfig(level=logging.DEBUG)
@@ -11,38 +11,35 @@ logging.basicConfig(level=logging.DEBUG)
 
 class LogHandler:
 
-    def __init__(self, req: ABCRequestsClient):
+    def __init__(self, req: ABCRequestsClient, conn: ABCDbConn):
         self.req = req
+        self.conn = conn
 
-    def main(self, data):
+    def main(self, data: list):
         logging.debug(f'Method "main" was called with date {" ".join(data)}')
 
         resp = self.req.get(self.url(data))
         resp_json = resp.json()
 
-        conn = get_connect()
-        cur = get_cursor(conn)
-
         if resp_json['error']:
-            error = resp.json()['error']
-            logging.debug(error, 'Даты не существует')
-        else:
-            logs = resp.json()['logs']
-            logs_for_sort = self.add_date_num(logs)
-            logs_after_sort = self.sorting(logs_for_sort)
-            self.safe(logs_after_sort, cur)
+            logging.debug(resp.json()['error'], 'Даты не существует')
+            return
 
-        cur.close()
-        conn.commit()
+        logs = resp.json()['logs']
+        logs_for_sort = self.add_date_num(logs)
+        logs_after_sort = self.sorting(logs_for_sort)
 
-    @staticmethod
-    def safe(logs, cur):
+        self.conn.init_db()
+        self.safe(logs_after_sort)
+        self.conn.commit()
+
+    def safe(self, logs: list):
         for log in logs:
             fields = [str(val) for key, val in log.items() if key != 'date_num']
-            cur.execute(insert, fields)
+            self.conn.execute(insert, fields)
 
     @staticmethod
-    def sorting(logs):
+    def sorting(logs: list):
         quick_sort(logs)
         return logs
 
@@ -53,13 +50,14 @@ class LogHandler:
         return logs
 
     @staticmethod
-    def url(data):
-       return 'http://www.dsdev.tech/logs/' + data[2] + months[data[1]] + data[0]
+    def url(data: list):
+        return 'http://www.dsdev.tech/logs/' + data[2] + months[data[1]] + data[0]
 
 
 if __name__ == '__main__':
     req = RequestsClient()
-    log_handler = LogHandler(req)
+    conn = PGConn()
+    log_handler = LogHandler(req, conn)
     if sys.argv[1:]:
         log_handler.main(sys.argv[1:])
     else:

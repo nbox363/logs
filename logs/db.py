@@ -9,7 +9,7 @@ class ABCDbConn(ABC):
         pass
 
     @abstractmethod
-    def execute(self, s, f):
+    def execute(self, s, *args):
         pass
 
     @abstractmethod
@@ -36,9 +36,9 @@ class PGConn(ABCDbConn):
                                          user_id INT)''')
         cur.close()
 
-    def execute(self, s, f):
+    def execute(self, s, *args):
         cursor = self.conn.cursor()
-        cursor.execute(s, f)
+        cursor.execute(s, args)
         cursor.close()
 
     def commit(self):

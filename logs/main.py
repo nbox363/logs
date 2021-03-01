@@ -30,10 +30,10 @@ class LogHandler:
         logs_after_sort = self.sorting(logs_for_sort)
 
         self.conn.init_db()
-        self.safe(logs_after_sort)
+        self.save(logs_after_sort)
         self.conn.commit()
 
-    def safe(self, logs: list):
+    def save(self, logs: list):
         for log in logs:
             fields = [str(val) for key, val in log.items() if key != 'date_num']
             self.conn.execute(insert, fields)

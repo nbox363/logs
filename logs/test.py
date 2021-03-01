@@ -38,9 +38,9 @@ class TestLogHandler(unittest.TestCase):
 
     def test_save(self):
         data = [{'created_at': '2021-02-22T00:04:18',
-              'date_num': '20210222000418'},
-             {'created_at': '2021-02-22T00:16:45',
-              'date_num': '20210222001645'}]
+                 'date_num': '20210222000418'},
+                {'created_at': '2021-02-22T00:16:45',
+                 'date_num': '20210222001645'}]
 
         connMock = Mock()
         connMock.execute = MagicMock()

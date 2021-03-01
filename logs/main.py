@@ -2,8 +2,8 @@ import logging
 import re
 import sys
 
-from req import *
 from db import insert, ABCDbConn, PGConn
+from req import *
 from utilities import months, quick_sort, default_date
 
 logging.basicConfig(level=logging.DEBUG)
